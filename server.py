@@ -123,13 +123,13 @@ def enviar_correo_sendgrid(nombre, destinatario, tipo_escuela):
             </div>
             <p>Mientras tanto, puedes conocer más sobre nuestras soluciones visitando nuestro sitio web.</p>
             <p style="text-align: center;">
-                <a href="https://sescolar.ce" class="button">Conoce SEscolar.ce</a>
+                <a href="chimerical-twilight-e7b3e1.netlify.app" class="button">Conoce SEscolar.ce</a>
             </p>
             <div class="spam-note">
                  <strong>¿No ves este correo en tu bandeja de entrada?</strong> Por favor, revisa tu carpeta de <strong>correo no deseado / spam</strong> y márcalo como "No es spam" para asegurar que recibas nuestros mensajes en el futuro.
             </div>
             <hr style="margin: 24px 0;">
-            <p>Saludos cordiales,<br><strong>Equipo SEscolar.ce</strong><br><a href="https://sescolar.ce" style="color: #1E6DF2;">https://sescolar.ce</a></p>
+            <p>Saludos cordiales,<br><strong>Equipo SEscolar.ce</strong><br><a href="https://sescolar.ce" style="color: #1E6DF2;">chimerical-twilight-e7b3e1.netlify.app</a></p>
         </div>
         <div class="footer">
             <p>Este es un mensaje automático, por favor no responder.</p>

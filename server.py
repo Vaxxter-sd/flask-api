@@ -1,10 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import mysql.connector
-import smtplib
-from email.message import EmailMessage
 from datetime import datetime
-import threading   # ← NUEVO: para enviar correo sin bloquear
+import threading
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 app = Flask(__name__)
 CORS(app)
@@ -21,131 +21,51 @@ DB_CONFIG = {
 }
 
 # =============================================
-# CONFIGURACIÓN DEL CORREO ELECTRÓNICO (Gmail)
+# CONFIGURACIÓN DE SENDGRID
 # =============================================
-SMTP_CONFIG = {
-    'server': 'smtp.gmail.com',
-    'port': 587,
-    'user': 'sescolarinformes@gmail.com',
-    'password': 'buwu imql jbol brae'
-}
+import os
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
+FROM_EMAIL = "sescolarinformes@gmail.com"   # Remitente verificado
 
 # =============================================
-# FUNCIÓN PARA ENVIAR CORREO EN SEGUNDO PLANO
+# FUNCIÓN PARA ENVIAR CORREO (en hilo separado)
 # =============================================
-def enviar_correo_async(nombre, correo, tipo_escuela):
-    """
-    Envía el correo de confirmación. Esta función se ejecuta en un hilo separado
-    para no retrasar la respuesta de la API.
-    """
+def enviar_correo_sendgrid(nombre, destinatario, tipo_escuela):
     try:
-        msg = EmailMessage()
-        msg['Subject'] = f'¡Gracias por contactarnos, {nombre}! - SEscolar.ce'
-        msg['From'] = SMTP_CONFIG['user']
-        msg['To'] = correo
-
-        # Texto plano (alternativo)
-        texto_plano = f"""Hola {nombre},
-
-Gracias por tu interés en SEscolar.ce.
-
-Hemos recibido tu solicitud de información para {tipo_escuela}. En breve, un asesor se comunicará contigo para brindarte una demostración personalizada.
-
-Saludos cordiales,
-Equipo SEscolar.ce
-"""
-
-        # HTML personalizado (versión más ligera para mejorar velocidad)
+        subject = f'¡Gracias por contactarnos, {nombre}! - SEscolar.ce'
         html = f"""
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gracias por contactarnos</title>
-    <style>
-        body {{
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #f4f7fc;
-            margin: 0;
-            padding: 20px;
-        }}
-        .container {{
-            max-width: 600px;
-            margin: 0 auto;
-            background: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }}
-        .header {{
-            background-color: #1E6DF2;
-            padding: 24px;
-            text-align: center;
-        }}
-        .header h1 {{
-            color: #ffffff;
-            margin: 0;
-            font-size: 1.8rem;
-        }}
-        .content {{
-            padding: 32px;
-        }}
-        .button {{
-            display: inline-block;
-            background-color: #1E6DF2;
-            color: #ffffff;
-            text-decoration: none;
-            padding: 10px 24px;
-            border-radius: 40px;
-            margin-top: 16px;
-        }}
-        .footer {{
-            padding: 20px;
-            text-align: center;
-            color: #6c7e91;
-            font-size: 0.8rem;
-            border-top: 1px solid #eaeef5;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>SEscolar.ce</h1>
-        </div>
-        <div class="content">
-            <p>Hola <strong>{nombre}</strong>,</p>
-            <p>¡Gracias por ponerte en contacto con <strong>SEscolar.ce</strong>! Hemos recibido tu solicitud de información para <strong>{tipo_escuela}</strong>.</p>
-            <p>Un asesor especializado se comunicará contigo en las próximas horas para ofrecerte una demostración personalizada.</p>
-            <p style="text-align: center;">
-                <a href="https://sescolar.ce" class="button">Conoce SEscolar.ce</a>
-            </p>
-            <hr style="margin: 24px 0;">
-            <p>Saludos cordiales,<br><strong>Equipo SEscolar.ce</strong></p>
-        </div>
-        <div class="footer">
-            <p>Este es un mensaje automático, por favor no responder.</p>
-            <p>&copy; 2025 SEscolar.ce – Soluciones educativas integrales</p>
-        </div>
+<head><meta charset="UTF-8"><title>Gracias</title></head>
+<body style="font-family: Arial; background:#f4f7fc; padding:20px;">
+    <div style="max-width:600px; margin:auto; background:#fff; border-radius:16px; padding:20px;">
+        <h1 style="color:#1E6DF2;">SEscolar.ce</h1>
+        <p>Hola <strong>{nombre}</strong>,</p>
+        <p>¡Gracias por tu interés! Hemos recibido tu solicitud para <strong>{tipo_escuela}</strong>.</p>
+        <p>Un asesor se comunicará contigo en breve.</p>
+        <hr>
+        <p style="font-size:12px; color:gray;">Este es un mensaje automático.</p>
     </div>
 </body>
 </html>
 """
-
-        msg.set_content(texto_plano)
-        msg.add_alternative(html, subtype='html')
-
-        with smtplib.SMTP(SMTP_CONFIG['server'], SMTP_CONFIG['port']) as smtp:
-            smtp.starttls()
-            smtp.login(SMTP_CONFIG['user'], SMTP_CONFIG['password'])
-            smtp.send_message(msg)
-        print(f"Correo enviado exitosamente a {correo}")
+        message = Mail(
+            from_email=FROM_EMAIL,
+            to_emails=destinatario,
+            subject=subject,
+            html_content=html
+        )
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        response = sg.send(message)
+        if response.status_code == 202:
+            print(f"Correo enviado a {destinatario}")
+        else:
+            print(f"Error al enviar: {response.status_code}")
     except Exception as e:
-        print(f"Error al enviar correo a {correo}: {e}")
+        print(f"Excepción en envío de correo: {e}")
 
 # =============================================
-# RUTA PRINCIPAL: Recibe los datos del formulario
+# RUTA PRINCIPAL
 # =============================================
 @app.route('/nuevo_lead', methods=['POST'])
 def nuevo_lead():
@@ -156,10 +76,9 @@ def nuevo_lead():
         tipo_escuela = data.get('tipo_escuela')
         fecha = datetime.now()
 
-        # 1. Guardar en base de datos (rápido)
+        # Guardar en base de datos
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
-        # Crear tabla si no existe (por si acaso)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS leads (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -169,25 +88,22 @@ def nuevo_lead():
                 fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        sql = "INSERT INTO leads (nombre, correo, tipo_escuela, fecha_registro) VALUES (%s, %s, %s, %s)"
-        cursor.execute(sql, (nombre, correo, tipo_escuela, fecha))
+        cursor.execute(
+            "INSERT INTO leads (nombre, correo, tipo_escuela, fecha_registro) VALUES (%s, %s, %s, %s)",
+            (nombre, correo, tipo_escuela, fecha)
+        )
         conn.commit()
         cursor.close()
         conn.close()
 
-        # 2. Enviar correo en segundo plano (sin bloquear la respuesta)
-        hilo = threading.Thread(target=enviar_correo_async, args=(nombre, correo, tipo_escuela))
-        hilo.start()
+        # Enviar correo sin bloquear la respuesta
+        threading.Thread(target=enviar_correo_sendgrid, args=(nombre, correo, tipo_escuela)).start()
 
-        # 3. Responder inmediatamente al usuario
         return jsonify({'status': 'ok', 'mensaje': 'Lead guardado, correo en proceso'}), 200
 
     except Exception as e:
         print('Error:', e)
         return jsonify({'status': 'error', 'mensaje': str(e)}), 500
 
-# =============================================
-# PUNTO DE ENTRADA (ejecuta el servidor)
-# =============================================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -13,11 +13,11 @@ CORS(app)
 # =============================================
 # Configuración de la base de datos (lee variables de entorno de Railway)
 DB_CONFIG = {
-    'host': 'kodama.proxy.rlwy.net',
-    'user': 'root',
-    'password': 'uAWtpgQEHbDcTFiJOmxratreEnpIJXjb',  # tu contraseña completa
-    'database': 'railway',
-    'port': 38086   # ← importante, no es 3306
+    'host': 'b1itk5vuskow4a4mljf8-mysql.services.clever-cloud.com',
+    'user': 'uk2coc2buc33hwlo',
+    'password': '3pGDG80KJ0zLm7xDLIcu',
+    'database': 'b1itk5vuskow4a4mljf8',
+    'port': 3306
 }
 
 # =============================================

@@ -5,6 +5,7 @@ from datetime import datetime
 import threading
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -23,7 +24,6 @@ DB_CONFIG = {
 # =============================================
 # CONFIGURACIÓN DE SENDGRID
 # =============================================
-import os
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 FROM_EMAIL = "sescolarinformes@gmail.com"
 
@@ -31,9 +31,39 @@ FROM_EMAIL = "sescolarinformes@gmail.com"
 # FUNCIÓN PARA ENVIAR CORREO (en hilo separado)
 # =============================================
 def enviar_correo_sendgrid(nombre, destinatario, tipo_escuela):
-    # ... (todo el contenido de la función se mantiene igual, no lo cambio)
-    # No modifiques esta parte, ya está bien.
-    pass  # (yo pondría el código completo aquí, pero por espacio no lo copio)
+    try:
+        subject = f'¡Gracias por contactarnos, {nombre}! - SEscolar.ce'
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial; background:#f4f7fc; padding:20px;">
+            <div style="max-width:600px; margin:auto; background:#fff; border-radius:16px; padding:20px;">
+                <h1 style="color:#1E6DF2;">SEscolar.ce</h1>
+                <p>Hola <strong>{nombre}</strong>,</p>
+                <p>¡Gracias por tu interés! Hemos recibido tu solicitud para <strong>{tipo_escuela}</strong>.</p>
+                <p>Un asesor se comunicará contigo en breve.</p>
+                <hr>
+                <p style="font-size:12px; color:gray;">Si no ves este correo en tu bandeja de entrada, revisa tu carpeta de spam.</p>
+            </div>
+        </body>
+        </html>
+        """
+        plain_text = f"Hola {nombre},\n\nGracias por contactarnos. Hemos recibido tu solicitud para {tipo_escuela}.\n\nSi no ves este correo en tu bandeja de entrada, revisa tu carpeta de spam.\n\nSaludos,\nEquipo SEscolar.ce"
+
+        message = Mail(
+            from_email=FROM_EMAIL,
+            to_emails=destinatario,
+            subject=subject,
+            html_content=html_content,
+            plain_text_content=plain_text
+        )
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        response = sg.send(message)
+        if response.status_code == 202:
+            print(f"Correo enviado exitosamente a {destinatario}")
+        else:
+            print(f"Error al enviar correo a {destinatario}: código {response.status_code}")
+    except Exception as e:
+        print(f"Excepción enviando correo a {destinatario}: {e}")
 
 # =============================================
 # RUTA PRINCIPAL CON VERIFICACIÓN DE DUPLICADOS
@@ -47,7 +77,6 @@ def nuevo_lead():
         tipo_escuela = data.get('tipo_escuela')
         fecha = datetime.now()
 
-        # Conectar a la base de datos
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
 

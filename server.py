@@ -33,6 +33,10 @@ FROM_EMAIL = "sescolarinformes@gmail.com"
 def enviar_correo_sendgrid(nombre, destinatario, tipo_escuela):
     try:
         subject = f'¡Gracias por contactarnos, {nombre}! - SEscolar.ce'
+        
+        # Enlace a tu landing page (completo con https)
+        landing_url = "https://chimerical-twilight-e7b3e1.netlify.app"
+
         html_content = f"""
         <html>
         <body style="font-family: Arial; background:#f4f7fc; padding:20px;">
@@ -41,13 +45,25 @@ def enviar_correo_sendgrid(nombre, destinatario, tipo_escuela):
                 <p>Hola <strong>{nombre}</strong>,</p>
                 <p>¡Gracias por tu interés! Hemos recibido tu solicitud para <strong>{tipo_escuela}</strong>.</p>
                 <p>Un asesor se comunicará contigo en breve.</p>
+                <div style="text-align:center; margin: 30px 0;">
+                    <a href="{landing_url}" style="background-color:#1E6DF2; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:40px; font-weight:bold;">Visitar nuestro sitio</a>
+                </div>
                 <hr>
                 <p style="font-size:12px; color:gray;">Si no ves este correo en tu bandeja de entrada, revisa tu carpeta de spam.</p>
             </div>
         </body>
         </html>
         """
-        plain_text = f"Hola {nombre},\n\nGracias por contactarnos. Hemos recibido tu solicitud para {tipo_escuela}.\n\nSi no ves este correo en tu bandeja de entrada, revisa tu carpeta de spam.\n\nSaludos,\nEquipo SEscolar.ce"
+        plain_text = f"""Hola {nombre},
+
+Gracias por contactarnos. Hemos recibido tu solicitud para {tipo_escuela}.
+
+Puedes visitar nuestro sitio web en: {landing_url}
+
+Si no ves este correo en tu bandeja de entrada, revisa tu carpeta de spam.
+
+Saludos,
+Equipo SEscolar.ce"""
 
         message = Mail(
             from_email=FROM_EMAIL,

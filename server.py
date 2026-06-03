@@ -11,7 +11,7 @@ app = Flask(__name__)
 CORS(app)
 
 # =============================================
-# CONFIGURACIÓN DE LA BASE DE DATOS (Clever Cloud)
+# CONFIGURACION DE LA BASE DE DATOS (Clever Cloud)
 # =============================================
 DB_CONFIG = {
     'host': 'b1itk5vuskow4a4mljf8-mysql.services.clever-cloud.com',
@@ -22,17 +22,18 @@ DB_CONFIG = {
 }
 
 # =============================================
-# CONFIGURACIÓN DE SENDGRID
+# CONFIGURACION DE SENDGRID
 # =============================================
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 FROM_EMAIL = "sescolarinformes@gmail.com"
+NOTIFY_EMAIL = "jolopezhu1458@uaemex.mx"   # Correo que recibira la notificacion
 
 # =============================================
-# FUNCIÓN PARA ENVIAR CORREO (en hilo separado)
+# FUNCION PARA ENVIAR CORREO (en hilo separado)
 # =============================================
 def enviar_correo_sendgrid(nombre, destinatario, tipo_escuela):
     try:
-        subject = f'¡Gracias por contactarnos, {nombre}! - SEscolar.ce'
+        subject = f'Gracias por contactarnos, {nombre} - SEscolar.ce'
         
         # Enlace a tu landing page (completo con https)
         landing_url = "https://chimerical-twilight-e7b3e1.netlify.app"
@@ -43,8 +44,8 @@ def enviar_correo_sendgrid(nombre, destinatario, tipo_escuela):
             <div style="max-width:600px; margin:auto; background:#fff; border-radius:16px; padding:20px;">
                 <h1 style="color:#1E6DF2;">SEscolar.ce</h1>
                 <p>Hola <strong>{nombre}</strong>,</p>
-                <p>¡Gracias por tu interés! Hemos recibido tu solicitud para <strong>{tipo_escuela}</strong>.</p>
-                <p>Un asesor se comunicará contigo en breve.</p>
+                <p>Gracias por tu interes. Hemos recibido tu solicitud para <strong>{tipo_escuela}</strong>.</p>
+                <p>Un asesor se comunicara contigo en breve.</p>
                 <div style="text-align:center; margin: 30px 0;">
                     <a href="{landing_url}" style="background-color:#1E6DF2; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:40px; font-weight:bold;">Visitar nuestro sitio</a>
                 </div>
@@ -77,12 +78,39 @@ Equipo SEscolar.ce"""
         if response.status_code == 202:
             print(f"Correo enviado exitosamente a {destinatario}")
         else:
-            print(f"Error al enviar correo a {destinatario}: código {response.status_code}")
+            print(f"Error al enviar correo a {destinatario}: codigo {response.status_code}")
+
+        # =============================================
+        # Enviar notificacion al administrador
+        # =============================================
+        subject_admin = f'Nuevo lead registrado: {nombre}'
+        html_admin = f"""
+        <html>
+        <body>
+            <h2>Nuevo lead en SEscolar.ce</h2>
+            <p><strong>Nombre:</strong> {nombre}</p>
+            <p><strong>Correo:</strong> {destinatario}</p>
+            <p><strong>Tipo de escuela:</strong> {tipo_escuela}</p>
+            <p><strong>Fecha:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <hr>
+            <p>Este es un aviso automatico del sistema de captacion de leads.</p>
+        </body>
+        </html>
+        """
+        message_admin = Mail(
+            from_email=FROM_EMAIL,
+            to_emails=NOTIFY_EMAIL,
+            subject=subject_admin,
+            html_content=html_admin
+        )
+        sg.send(message_admin)
+        print(f"Notificacion enviada a {NOTIFY_EMAIL}")
+
     except Exception as e:
-        print(f"Excepción enviando correo a {destinatario}: {e}")
+        print(f"Excepcion enviando correos: {e}")
 
 # =============================================
-# RUTA PRINCIPAL CON VERIFICACIÓN DE DUPLICADOS
+# RUTA PRINCIPAL CON VERIFICACION DE DUPLICADOS
 # =============================================
 @app.route('/nuevo_lead', methods=['POST'])
 def nuevo_lead():
@@ -101,7 +129,7 @@ def nuevo_lead():
         if cursor.fetchone():
             cursor.close()
             conn.close()
-            return jsonify({'status': 'error', 'mensaje': 'Este correo ya está registrado.'}), 400
+            return jsonify({'status': 'error', 'mensaje': 'Este correo ya esta registrado.'}), 400
 
         # Insertar nuevo lead (la tabla ya existe, no la volvemos a crear)
         sql = "INSERT INTO leads (nombre, correo, tipo_escuela, fecha_registro) VALUES (%s, %s, %s, %s)"

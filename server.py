@@ -26,7 +26,7 @@ DB_CONFIG = {
 # =============================================
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 FROM_EMAIL = "sescolarinformes@gmail.com"
-NOTIFY_EMAIL = "jolopezhu1458@uaemex.mx"   # Correo que recibira la notificacion
+NOTIFY_EMAIL = "carlos213244@gmail.com"   # Correo que recibira la notificacion
 
 # =============================================
 # FUNCION PARA ENVIAR CORREO (en hilo separado)

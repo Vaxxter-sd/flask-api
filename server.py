@@ -6,6 +6,7 @@ import threading
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 import os
+import requests   #  Agregar esta importación
 
 app = Flask(__name__)
 CORS(app)
@@ -26,7 +27,12 @@ DB_CONFIG = {
 # =============================================
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 FROM_EMAIL = "sescolarinformes@gmail.com"
-NOTIFY_EMAIL = "jolopezhu1458@uaemex.mx"   # Correo que recibira la notificacion
+NOTIFY_EMAIL = "jolopezhu1458@uaemex.mx"
+
+# =============================================
+# CONFIGURACION DEL CRM (Django) - Endpoint
+# =============================================
+CRM_API_URL = "https://django-railway-production-c6f7.up.railway.app/api/nuevo_lead"  # Ajusta la URL
 
 # =============================================
 # FUNCION PARA ENVIAR CORREO (en hilo separado)
@@ -34,8 +40,6 @@ NOTIFY_EMAIL = "jolopezhu1458@uaemex.mx"   # Correo que recibira la notificacion
 def enviar_correo_sendgrid(nombre, destinatario, tipo_escuela):
     try:
         subject = f'Gracias por contactarnos, {nombre} - SEscolar.ce'
-        
-        # Enlace a tu landing page (completo con https)
         landing_url = "https://chimerical-twilight-e7b3e1.netlify.app"
 
         html_content = f"""
@@ -80,9 +84,7 @@ Equipo SEscolar.ce"""
         else:
             print(f"Error al enviar correo a {destinatario}: codigo {response.status_code}")
 
-        # =============================================
-        # Enviar notificacion al administrador
-        # =============================================
+        # Notificación al administrador
         subject_admin = f'Nuevo lead registrado: {nombre}'
         html_admin = f"""
         <html>
@@ -110,6 +112,25 @@ Equipo SEscolar.ce"""
         print(f"Excepcion enviando correos: {e}")
 
 # =============================================
+# NUEVA FUNCION PARA ENVIAR LEAD AL CRM VIA API
+# =============================================
+def enviar_lead_a_crm(nombre, correo, tipo_escuela, fecha_registro):
+    try:
+        payload = {
+            "nombre": nombre,
+            "correo": correo,
+            "tipo_escuela": tipo_escuela,
+            "fecha_registro": fecha_registro.isoformat()
+        }
+        response = requests.post(CRM_API_URL, json=payload, timeout=5)
+        if response.status_code in (200, 201):
+            print(f"Lead enviado al CRM exitosamente para {correo}")
+        else:
+            print(f"Error al enviar lead al CRM: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"Excepción al enviar lead al CRM: {e}")
+
+# =============================================
 # RUTA PRINCIPAL CON VERIFICACION DE DUPLICADOS
 # =============================================
 @app.route('/nuevo_lead', methods=['POST'])
@@ -124,14 +145,14 @@ def nuevo_lead():
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
-        # Verificar si el correo ya existe (evitar duplicados)
+        # Verificar si el correo ya existe
         cursor.execute("SELECT id FROM leads WHERE correo = %s", (correo,))
         if cursor.fetchone():
             cursor.close()
             conn.close()
             return jsonify({'status': 'error', 'mensaje': 'Este correo ya esta registrado.'}), 400
 
-        # Insertar nuevo lead (la tabla ya existe, no la volvemos a crear)
+        # Insertar en Clever Cloud
         sql = "INSERT INTO leads (nombre, correo, tipo_escuela, fecha_registro) VALUES (%s, %s, %s, %s)"
         cursor.execute(sql, (nombre, correo, tipo_escuela, fecha))
         conn.commit()
@@ -140,6 +161,9 @@ def nuevo_lead():
 
         # Enviar correo en segundo plano
         threading.Thread(target=enviar_correo_sendgrid, args=(nombre, correo, tipo_escuela)).start()
+
+        # Enviar lead al CRM en segundo plano (nuevo)
+        threading.Thread(target=enviar_lead_a_crm, args=(nombre, correo, tipo_escuela, fecha)).start()
 
         return jsonify({'status': 'ok', 'mensaje': 'Lead guardado, correo en proceso'}), 200
 

@@ -27,7 +27,7 @@ DB_CONFIG = {
 # =============================================
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 FROM_EMAIL = "sescolarinformes@gmail.com"
-NOTIFY_EMAIL = "jolopezhu1458@uaemex.mx"
+NOTIFY_EMAIL = "carlos213244@gmail.com"
 
 # =============================================
 # CONFIGURACION DEL CRM (Django) - Endpoint

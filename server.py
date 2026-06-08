@@ -32,7 +32,7 @@ NOTIFY_EMAIL = "jolopezhu1458@uaemex.mx"
 # =============================================
 # CONFIGURACION DEL CRM (Django) - Endpoint
 # =============================================
-CRM_API_URL = "https://django-railway-production-c6f7.up.railway.app/api/nuevo_lead"  # Ajusta la URL
+CRM_API_URL = "https://django-railway-production-c6f7.up.railway.app/api/recibir-lead/"
 
 # =============================================
 # FUNCION PARA ENVIAR CORREO (en hilo separado)

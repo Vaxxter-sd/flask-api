@@ -40,7 +40,7 @@ CRM_API_URL = "https://django-railway-production-c6f7.up.railway.app/api/recibir
 def enviar_correo_sendgrid(nombre, destinatario, tipo_escuela):
     try:
         subject = f'Gracias por contactarnos, {nombre} - SEscolar.ce'
-        landing_url = "https://chimerical-twilight-e7b3e1.netlify.app"
+        landing_url = "https://thunderous-ganache-e00a41.netlify.app"
 
         html_content = f"""
         <html>
